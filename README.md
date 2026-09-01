@@ -2,9 +2,9 @@
 
 A small, practical product recommendation engine demonstrating how ML recommendation techniques can be integrated into an e-commerce application.
 
-## Current Version: V6
+## Current Version: V6.1
 
-The project now includes a Flutter mobile client consuming the FastAPI recommendation service.
+The project includes a hybrid ML engine, a FastAPI REST service, and a polished Flutter mobile client.
 
 ## Architecture
 
@@ -27,17 +27,7 @@ The project now includes a Flutter mobile client consuming the FastAPI recommend
 
 ## Recommendation Engine
 
-The engine combines:
-
-- **Content-based filtering** — products similar to the customer's own interaction history.
-- **User-based collaborative filtering** — products supported by similar customer behaviour.
-
-Default blend:
-
-- Content-based: **60%**
-- Collaborative: **40%**
-
-Scores are normalized before blending.
+The engine combines content-based filtering and user-based collaborative filtering. The default blend is 60% content and 40% collaborative, with scores normalized before blending.
 
 ## V5 — FastAPI
 
@@ -51,19 +41,24 @@ REST endpoints:
 
 ## V6 — Flutter Client
 
-The Flutter application demonstrates a real mobile integration with the Python ML service.
+The Flutter application consumes the Python recommendation API and presents the results as a simple e-commerce-style mobile experience.
 
-It includes:
+## V6.1 — Client Polish
 
-- Customer selection
-- REST API integration using `http`
-- JSON model parsing
-- Loading state
-- Error state
+The mobile client now includes:
+
+- Automatic recommendation loading on startup
+- Customer selection with automatic refresh
 - Pull-to-refresh
-- Recommendation ranking cards
-- Score visualization
+- Explicit refresh action
+- Loading, error, retry, and empty states
+- Configurable API URL through `--dart-define`
+- Material 3 UI
+- Recommendation score visualization
+- Content and collaborative component scores
 - Human-readable recommendation explanations
+- Reusable recommendation card and state widgets
+- Network timeout and response validation
 
 ### Flutter Structure
 
@@ -139,4 +134,5 @@ For a physical device, replace the API host with the machine's LAN IP address.
 - [x] V4: Hybrid recommendation
 - [x] V5: FastAPI recommendation API
 - [x] V6: Flutter client
+- [x] V6.1: Client polish
 - [ ] V7: React Native/Web client
