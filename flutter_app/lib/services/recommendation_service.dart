@@ -8,26 +8,23 @@ class RecommendationService {
   final String baseUrl;
   final http.Client client;
 
-  RecommendationService({
-    required this.baseUrl,
-    http.Client? client,
-  }) : client = client ?? http.Client();
+  RecommendationService({required this.baseUrl, http.Client? client})
+      : client = client ?? http.Client();
 
-  Future<List<Recommendation>> getRecommendations(
-    String userId, {
-    int topN = 5,
-  }) async {
+  Future<List<Recommendation>> getRecommendations(String userId, {int topN = 5}) async {
     final uri = Uri.parse('$baseUrl/recommendations/$userId?top_n=$topN');
-    final response = await client.get(uri);
+    final response = await client.get(uri).timeout(const Duration(seconds: 10));
 
     if (response.statusCode != 200) {
       throw Exception('Recommendation API returned ${response.statusCode}.');
     }
 
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final items = body['recommendations'] as List<dynamic>;
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['recommendations'] is! List) {
+      throw const FormatException('Invalid recommendation response.');
+    }
 
-    return items
+    return (decoded['recommendations'] as List)
         .map((item) => Recommendation.fromJson(item as Map<String, dynamic>))
         .toList();
   }
