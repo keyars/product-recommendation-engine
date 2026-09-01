@@ -8,29 +8,35 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
+INTERACTION_WEIGHTS = {
+    "view": 1.0,
+    "wishlist": 3.0,
+    "cart": 4.0,
+    "purchase": 5.0,
+}
+
+
 class ProductRecommender:
-    """Simple content-based product recommendation engine."""
+    """Content-based recommender with explainable preference scoring."""
 
     def __init__(self, products: pd.DataFrame, interactions: pd.DataFrame) -> None:
-        required_products = {"product_id", "name", "category", "brand", "tags"}
-        required_interactions = {"user_id", "product_id", "weight"}
+        required_products = {"product_id", "name", "category", "brand", "price", "tags"}
+        required_interactions = {"user_id", "product_id", "interaction"}
 
         missing_products = required_products - set(products.columns)
         missing_interactions = required_interactions - set(interactions.columns)
         if missing_products:
             raise ValueError(f"Products dataset missing columns: {sorted(missing_products)}")
         if missing_interactions:
-            raise ValueError(
-                f"Interactions dataset missing columns: {sorted(missing_interactions)}"
-            )
+            raise ValueError(f"Interactions dataset missing columns: {sorted(missing_interactions)}")
 
         self.products = products.reset_index(drop=True).copy()
         self.interactions = interactions.copy()
+        self.interactions["weight"] = self.interactions["interaction"].map(INTERACTION_WEIGHTS).fillna(1.0)
+
         self.products["profile"] = (
-            self.products["category"].fillna("")
-            + " "
-            + self.products["brand"].fillna("")
-            + " "
+            self.products["category"].fillna("") + " "
+            + self.products["brand"].fillna("") + " "
             + self.products["tags"].fillna("")
         )
         self.vectorizer = TfidfVectorizer(lowercase=True, ngram_range=(1, 2))
@@ -40,9 +46,7 @@ class ProductRecommender:
         if top_n <= 0:
             raise ValueError("top_n must be greater than 0")
 
-        user_interactions = self.interactions[
-            self.interactions["user_id"] == user_id
-        ].copy()
+        user_interactions = self.interactions[self.interactions["user_id"] == user_id].copy()
         if user_interactions.empty:
             return self._popular_fallback(top_n)
 
@@ -64,8 +68,38 @@ class ProductRecommender:
         ranked = ranked[~ranked["product_id"].isin(seen_ids)]
         ranked = ranked.sort_values(["score", "product_id"], ascending=[False, True]).head(top_n)
 
-        return [self._result(row.product_id, row.name, row.category, row.brand, row.price, row.score)
-                for row in ranked.itertuples()]
+        return [self._result(row, user_interactions) for row in ranked.itertuples()]
+
+    def _result(self, row, user_interactions: pd.DataFrame) -> dict:
+        reason = self._explain(row, user_interactions)
+        return {
+            "product_id": row.product_id,
+            "name": row.name,
+            "category": row.category,
+            "brand": row.brand,
+            "price": float(row.price),
+            "score": round(float(row.score), 4),
+            "reason": reason,
+        }
+
+    def _explain(self, product, interactions: pd.DataFrame) -> str:
+        categories = self._top_values(interactions.merge(self.products, on="product_id"), "category")
+        brands = self._top_values(interactions.merge(self.products, on="product_id"), "brand")
+
+        if product.category in categories and product.brand in brands:
+            return f"Matches your interest in {product.category.lower()} products and {product.brand}."
+        if product.category in categories:
+            return f"Matches your interest in {product.category.lower()} products."
+        if product.brand in brands:
+            return f"Matches your interest in {product.brand} products."
+        return "Similar to products you have interacted with."
+
+    @staticmethod
+    def _top_values(interactions: pd.DataFrame, column: str) -> set:
+        if interactions.empty:
+            return set()
+        scores = interactions.groupby(column)["weight"].sum().sort_values(ascending=False)
+        return set(scores.head(2).index.tolist())
 
     def _popular_fallback(self, top_n: int) -> List[dict]:
         popularity = (
@@ -75,19 +109,18 @@ class ProductRecommender:
         candidates = self.products.merge(popularity, on="product_id", how="left")
         candidates["score"] = candidates["score"].fillna(0.0)
         candidates = candidates.sort_values(["score", "product_id"], ascending=[False, True]).head(top_n)
-        return [self._result(row.product_id, row.name, row.category, row.brand, row.price, row.score)
-                for row in candidates.itertuples()]
-
-    @staticmethod
-    def _result(product_id, name, category, brand, price, score) -> dict:
-        return {
-            "product_id": product_id,
-            "name": name,
-            "category": category,
-            "brand": brand,
-            "price": float(price),
-            "score": round(float(score), 4),
-        }
+        return [
+            {
+                "product_id": row.product_id,
+                "name": row.name,
+                "category": row.category,
+                "brand": row.brand,
+                "price": float(row.price),
+                "score": round(float(row.score), 4),
+                "reason": "Popular among customers.",
+            }
+            for row in candidates.itertuples()
+        ]
 
 
 def load_recommender(base_dir: str | Path) -> ProductRecommender:
