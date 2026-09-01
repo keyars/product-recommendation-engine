@@ -9,7 +9,6 @@ if __name__ == "__main__":
     for user_id in ["U001", "U003", "UNKNOWN"]:
         print(f"\nRecommendations for {user_id}:")
         for index, product in enumerate(recommender.recommend(user_id, top_n=3), 1):
-            print(
-                f"{index}. {product['name']} ({product['category']}) "
-                f"- score={product['score']}"
-            )
+            print(f"{index}. {product['name']} ({product['category']})")
+            print(f"   Score: {product['score']}")
+            print(f"   Why: {product['reason']}")
