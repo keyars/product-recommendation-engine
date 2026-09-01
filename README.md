@@ -2,71 +2,74 @@
 
 A small, practical product recommendation engine demonstrating how ML recommendation techniques can be integrated into an e-commerce application.
 
-## Current Version: V4
+## Current Version: V5
 
-The project now combines two recommendation signals:
+The project now exposes the hybrid recommendation engine through a lightweight REST API.
+
+## Recommendation Engine
+
+The engine combines:
 
 - **Content-based filtering** — recommends products similar to the customer's own interaction history.
 - **User-based collaborative filtering** — recommends products based on behaviour from customers with similar interaction patterns.
 
-## V1 — Content-Based Recommendation
+The default hybrid blend is:
 
-Product category, brand, and tags are converted into TF-IDF vectors. A weighted customer profile is compared with products using cosine similarity.
+- Content-based: **60%**
+- Collaborative: **40%**
 
-## V2 — Behaviour + Explainability
+Scores are normalized before blending.
 
-- View = 1
-- Wishlist = 3
-- Cart = 4
-- Purchase = 5
-- Human-readable recommendation reasons.
-- Popularity fallback for unknown customers.
+## V5 — FastAPI
 
-## V3 — Collaborative Filtering
+The Python recommendation engine is now accessible to mobile, web, or other clients through REST.
 
-The engine creates a **user × product interaction matrix**, calculates cosine similarity between customers, selects similar customers, and uses their weighted interactions to rank products the target customer has not seen.
+### Endpoints
 
-## V4 — Hybrid Recommendation
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/` | Service information |
+| GET | `/health` | Health check |
+| GET | `/recommendations/{user_id}` | Get product recommendations |
 
-V4 combines both approaches instead of relying on one signal:
+### Recommendation Parameters
+
+`top_n` controls the number of recommendations and defaults to 5.
+
+`content_weight` controls the hybrid balance and defaults to 0.6. The collaborative weight is automatically calculated as `1 - content_weight`.
+
+Example:
 
 ```text
-                 Customer History
-                       │
-             ┌─────────┴─────────┐
-             ↓                   ↓
-       Content-Based       Collaborative
-             │                   │
-             ↓                   ↓
-       Content Score      Collaborative Score
-             │                   │
-             └─────────┬─────────┘
-                       ↓
-                 Weighted Blend
-                       ↓
-              Final Recommendation
+GET /recommendations/U001?top_n=5
 ```
 
-The default blend is:
+The response contains the user ID, recommendation count, product information, hybrid score, component scores, and explanation.
 
-- Content-based signal: **60%**
-- Collaborative signal: **40%**
+## Run Locally
 
-Scores are normalized before blending so that the two algorithms contribute on the same scale.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn src.api:app --reload
+```
 
-The result exposes both component scores, the final hybrid score, and an explanation describing why the product was recommended.
+Then open the interactive API documentation at `/docs`.
 
-### Why Hybrid?
+Run tests with:
 
-Content-based filtering is useful when we know what a customer likes. Collaborative filtering can discover patterns that product metadata alone cannot capture. Combining them gives the application two independent recommendation signals.
-
-The sample dataset is intentionally small. This project demonstrates the algorithmic progression rather than production-scale recommendation quality.
+```bash
+pytest
+```
 
 ## Stack
 
 - Python
 - Pandas
 - scikit-learn
+- FastAPI
+- Uvicorn
 - pytest
 
 ## Project Structure
@@ -78,6 +81,7 @@ product-recommendation-engine/
 │   └── user_interactions.csv
 ├── src/
 │   ├── __init__.py
+│   ├── api.py
 │   ├── collaborative.py
 │   ├── demo.py
 │   ├── hybrid.py
@@ -85,19 +89,10 @@ product-recommendation-engine/
 │   └── recommender.py
 ├── tests/
 │   ├── __init__.py
+│   ├── test_api.py
 │   └── test_recommender.py
 ├── requirements.txt
 └── .gitignore
-```
-
-## Run Locally
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python src/hybrid_demo.py
-pytest
 ```
 
 ## Roadmap
@@ -106,6 +101,6 @@ pytest
 - [x] V2: Interaction weighting + explainable recommendations
 - [x] V3: User-based collaborative filtering
 - [x] V4: Hybrid recommendation
-- [ ] V5: FastAPI recommendation API
+- [x] V5: FastAPI recommendation API
 - [ ] V6: Flutter client
 - [ ] V7: React Native/Web client
