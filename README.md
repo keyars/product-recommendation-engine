@@ -2,21 +2,16 @@
 
 A small, practical product recommendation engine demonstrating how ML recommendation techniques can be integrated into an e-commerce application.
 
-## Current Version: V3
+## Current Version: V4
 
-The project now contains two recommendation strategies:
+The project now combines two recommendation signals:
 
 - **Content-based filtering** — recommends products similar to the customer's own interaction history.
 - **User-based collaborative filtering** — recommends products based on behaviour from customers with similar interaction patterns.
 
 ## V1 — Content-Based Recommendation
 
-1. Build a profile for each product from category, brand, and tags.
-2. Convert product profiles into TF-IDF vectors.
-3. Build a weighted customer preference vector.
-4. Calculate cosine similarity.
-5. Remove products already seen by the customer.
-6. Rank the remaining products.
+Product category, brand, and tags are converted into TF-IDF vectors. A weighted customer profile is compared with products using cosine similarity.
 
 ## V2 — Behaviour + Explainability
 
@@ -29,42 +24,43 @@ The project now contains two recommendation strategies:
 
 ## V3 — Collaborative Filtering
 
-V3 changes the question from:
+The engine creates a **user × product interaction matrix**, calculates cosine similarity between customers, selects similar customers, and uses their weighted interactions to rank products the target customer has not seen.
 
-> "Which products are similar to what this customer liked?"
+## V4 — Hybrid Recommendation
 
-to:
-
-> "What did customers with similar behaviour interact with?"
-
-The engine creates a **user × product interaction matrix**, calculates cosine similarity between customers, selects the most similar customers, and uses their weighted interactions to rank products the target customer has not seen.
-
-This is **user-based collaborative filtering**.
-
-### Example
+V4 combines both approaches instead of relying on one signal:
 
 ```text
-Customer A
- ├── Running Shoes
- ├── Running Socks
- └── Energy Gel
-
-        ↓ similar behaviour
-
-Customer B
- ├── Running Shoes
- ├── Running Socks
- ├── Running Watch
- └── Hydration Bottle
-
-        ↓
-
-Recommend to Customer A:
-Running Watch
-Hydration Bottle
+                 Customer History
+                       │
+             ┌─────────┴─────────┐
+             ↓                   ↓
+       Content-Based       Collaborative
+             │                   │
+             ↓                   ↓
+       Content Score      Collaborative Score
+             │                   │
+             └─────────┬─────────┘
+                       ↓
+                 Weighted Blend
+                       ↓
+              Final Recommendation
 ```
 
-The sample dataset is intentionally small. The goal is to understand the algorithm and application flow, not to claim production-level recommendation quality.
+The default blend is:
+
+- Content-based signal: **60%**
+- Collaborative signal: **40%**
+
+Scores are normalized before blending so that the two algorithms contribute on the same scale.
+
+The result exposes both component scores, the final hybrid score, and an explanation describing why the product was recommended.
+
+### Why Hybrid?
+
+Content-based filtering is useful when we know what a customer likes. Collaborative filtering can discover patterns that product metadata alone cannot capture. Combining them gives the application two independent recommendation signals.
+
+The sample dataset is intentionally small. This project demonstrates the algorithmic progression rather than production-scale recommendation quality.
 
 ## Stack
 
@@ -84,6 +80,8 @@ product-recommendation-engine/
 │   ├── __init__.py
 │   ├── collaborative.py
 │   ├── demo.py
+│   ├── hybrid.py
+│   ├── hybrid_demo.py
 │   └── recommender.py
 ├── tests/
 │   ├── __init__.py
@@ -98,7 +96,7 @@ product-recommendation-engine/
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python src/demo.py
+python src/hybrid_demo.py
 pytest
 ```
 
@@ -107,7 +105,7 @@ pytest
 - [x] V1: Content-based recommendation
 - [x] V2: Interaction weighting + explainable recommendations
 - [x] V3: User-based collaborative filtering
-- [ ] V4: Hybrid recommendation
+- [x] V4: Hybrid recommendation
 - [ ] V5: FastAPI recommendation API
 - [ ] V6: Flutter client
 - [ ] V7: React Native/Web client
