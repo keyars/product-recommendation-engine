@@ -1,41 +1,70 @@
 # Product Recommendation Engine
 
-A small, practical product recommendation engine demonstrating how a simple ML model can be integrated into an e-commerce application.
+A small, practical product recommendation engine demonstrating how ML recommendation techniques can be integrated into an e-commerce application.
 
-## Current Version: V2
+## Current Version: V3
 
-V2 keeps the V1 content-based model and makes the recommendation output more practical and explainable.
+The project now contains two recommendation strategies:
 
-### V2 Improvements
+- **Content-based filtering** — recommends products similar to the customer's own interaction history.
+- **User-based collaborative filtering** — recommends products based on behaviour from customers with similar interaction patterns.
 
-- Interaction-aware weighting: view, wishlist, cart, and purchase have different strengths.
-- Customer preferences are built from the weighted interaction history.
-- Recommendations exclude products the customer has already interacted with.
-- Each recommendation includes a human-readable reason.
-- Unknown customers receive a popularity-based fallback.
-
-## How It Works
+## V1 — Content-Based Recommendation
 
 1. Build a profile for each product from category, brand, and tags.
 2. Convert product profiles into TF-IDF vectors.
-3. Translate each customer interaction into a behavioural weight.
-4. Build a weighted customer preference vector.
-5. Calculate cosine similarity between the customer profile and available products.
-6. Remove products the customer has already interacted with.
-7. Rank the remaining products by similarity.
-8. Generate an explanation based on category and brand preferences.
-9. Fall back to popularity when there is not enough customer history.
+3. Build a weighted customer preference vector.
+4. Calculate cosine similarity.
+5. Remove products already seen by the customer.
+6. Rank the remaining products.
 
-### Interaction Weights
+## V2 — Behaviour + Explainability
 
-| Interaction | Weight |
-|---|---:|
-| View | 1 |
-| Wishlist | 3 |
-| Cart | 4 |
-| Purchase | 5 |
+- View = 1
+- Wishlist = 3
+- Cart = 4
+- Purchase = 5
+- Human-readable recommendation reasons.
+- Popularity fallback for unknown customers.
 
-These values are intentionally simple and transparent for V2. A future version can learn weights from real behavioural data.
+## V3 — Collaborative Filtering
+
+V3 changes the question from:
+
+> "Which products are similar to what this customer liked?"
+
+to:
+
+> "What did customers with similar behaviour interact with?"
+
+The engine creates a **user × product interaction matrix**, calculates cosine similarity between customers, selects the most similar customers, and uses their weighted interactions to rank products the target customer has not seen.
+
+This is **user-based collaborative filtering**.
+
+### Example
+
+```text
+Customer A
+ ├── Running Shoes
+ ├── Running Socks
+ └── Energy Gel
+
+        ↓ similar behaviour
+
+Customer B
+ ├── Running Shoes
+ ├── Running Socks
+ ├── Running Watch
+ └── Hydration Bottle
+
+        ↓
+
+Recommend to Customer A:
+Running Watch
+Hydration Bottle
+```
+
+The sample dataset is intentionally small. The goal is to understand the algorithm and application flow, not to claim production-level recommendation quality.
 
 ## Stack
 
@@ -53,6 +82,7 @@ product-recommendation-engine/
 │   └── user_interactions.csv
 ├── src/
 │   ├── __init__.py
+│   ├── collaborative.py
 │   ├── demo.py
 │   └── recommender.py
 ├── tests/
@@ -72,26 +102,11 @@ python src/demo.py
 pytest
 ```
 
-## Example
-
-```text
-Recommendations for U001:
-1. Running Shoes Pro (Running)
-   Score: ...
-   Why: Matches your interest in running products.
-```
-
-The exact ranking depends on the product feature representation and customer interaction history.
-
-## Why This Project Matters
-
-The objective is not to build a research-grade recommender. It is to demonstrate a complete progression from a simple ML algorithm to an application-ready recommendation feature.
-
 ## Roadmap
 
 - [x] V1: Content-based recommendation
 - [x] V2: Interaction weighting + explainable recommendations
-- [ ] V3: Collaborative filtering
+- [x] V3: User-based collaborative filtering
 - [ ] V4: Hybrid recommendation
 - [ ] V5: FastAPI recommendation API
 - [ ] V6: Flutter client
